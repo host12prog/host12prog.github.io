@@ -1,0 +1,323 @@
+<style>p {
+  max-width: 125ch;
+  overflow-wrap: break-word;
+}</style>
+<h1>the basics of fox32</h1>
+<p><i>- alex winston, august 1st, 2026</i></p>
+<p>hello! this fox32 tutorial series will mainly focus on the bare metal, meaning usage of the OS will be quite limited... instead, this tutorial will mostly focus on using the ROM, accessing hardware directly, etc... the tutorial will be using the <kbd>fox32asm</kbd> assembler syntax. for this tutorial, instruction encoding will not be covered in detail.</p>
+<p>this tutorial assumes you already understand binary, hexadecimal, how bitwise operations work, etc... if you don&#x27;t, perhaps it&#x27;s good for you to read up on how those work before reading this. </p>
+<h2>basic stuff</h2>
+<p>the cpu has 32 32-bit general-purpose registers named <kbd>r0</kbd> through <kbd>r31</kbd>.  the processor is little-endian, and memory can be accessed in byte size (8-bit, 0..255/0xFF), half size (16-bit, 0..65535/0xFFFF), and word size (32-bit, 0..4294967295/0xFFFFFFFF).</p>
+<p>nearly all instructions can take a size, suffixed with <kbd>.8</kbd>, <kbd>.16</kbd>, or <kbd>.32</kbd>. if left unspecified, the assembler will default to <kbd>.32</kbd> size. some opcodes only take a <kbd>.32</kbd> size, and therefore other sizes cannot be used with those opcodes.</p>
+<p>instructions are 2 bytes minimum when assembled, and are formatted <kbd>opcode&lt;.8/.16/.32&gt; &lt;target&gt;, &lt;source&gt;</kbd>, where <kbd>target</kbd> and <kbd>source</kbd> can be one of 4 addressing modes:</p>
+<ul>
+  <li>register: <kbd>r0</kbd> (this uses a register as the operand)</li>
+  <li>register pointer: <kbd>[r0]</kbd> (this uses the value at the memory address pointed to by register as the operand: <kbd>M[r0]</kbd>)</li>
+  <li>immediate: <kbd>0xB00B135</kbd> (this uses a direct value as the operand)</li>
+  <li>immediate pointer: <kbd>[0xB00B135]</kbd> (this uses the value at the memory address pointed to by the direct value as the operand: <kbd>M[0xB00B135]</kbd>)</li>
+</ul>
+<p>additionally, if the operand is a register pointer, it can optionally be followed by an unsigned 8-bit offset: <kbd>[r0+69]</kbd>, <kbd>[r0+255]</kbd></p>
+<h2>mov, movz</h2>
+<p>the <kbd>mov</kbd> (MOVe) instruction is perhaps the simplest instruction to understand. it simply moves the source operand into the target operand:</p>
+<pre><code>    mov r0, 1337</code></pre>
+<p>the above piece of code simply moves the value <kbd>1337</kbd> into register <kbd>r0</kbd>. of course, as mentioned before, this actually assembles to <kbd>mov.32 r0, 1337</kbd> because the size was left unspecified. the result is that this instruction will assemble into 7 bytes. this is usually not a concern, as we have 64MB of memory at our disposal, but this may not be very space-efficient, especially if you engage in sizecoding activities ;). the value <kbd>1337</kbd> can fit into a half (16 bits), thus, we can rewrite it as such:</p>
+<pre><code>    mov.16 r0, 1337</code></pre>
+<p>this will assemble into 5 bytes, 2 bytes less than our previous example. the saving may seem small, but these savings add up and may potentially give you space to do other things, which is important if you&#x27;re writing a 512-byte program in the boot sector. you can also do the same thing with 8-bit values:</p>
+<pre><code>    mov.8 r0, 8 ; this will only assemble to 4 bytes</code></pre>
+<p>it is important to note that <kbd>mov</kbd> moves without clearing any data that was there prior. in particular, <kbd>mov.8</kbd> and <kbd>mov.16</kbd> will move the operand into lower half of the register if a register is specified as the target. in other words:</p>
+<ul>
+  <li><kbd>r0</kbd> contains the value <kbd>0xDEADBEEF</kbd></li>
+  <li>we execute <kbd>mov.8 r0, 0x78</kbd></li>
+  <li><kbd>r0</kbd> now contains the value <kbd>0xDEADBE78</kbd></li>
+  <li>we execute <kbd>mov.16 r0, 0x5A5A</kbd></li>
+  <li><kbd>r0</kbd> now contains the value <kbd>0xDEAD5A5A</kbd></li>
+</ul>
+<p>this behaviour may not be desirable, especially if you are utilising the above techniques to reduce code size. to this end, there is the <kbd>movz</kbd> (MOVe Zero-extended) instruction. this instruction is the same as <kbd>mov</kbd>, but has the behaviour of clearing the upper bits (or in other words, the bits we don&#x27;t care about) to 0:</p>
+<ul>
+  <li><kbd>r0</kbd> contains the value <kbd>0xDEADBEEF</kbd></li>
+  <li>we execute <kbd>movz.8 r0, 0x78</kbd></li>
+  <li><kbd>r0</kbd> now contains the value <kbd>0x00000078</kbd></li>
+</ul>
+<p>and the same for <kbd>movz.16</kbd>:</p>
+<ul>
+  <li><kbd>r0</kbd> contains the value <kbd>0xDEADBEEF</kbd></li>
+  <li>we execute <kbd>movz.16 r0, 0x5A5A</kbd></li>
+  <li><kbd>r0</kbd> now contains the value <kbd>0x00005A5A</kbd></li>
+</ul>
+<h2>add, sub, inc, dec</h2>
+<p>before reading this, it is important to know that the CPU has 2 internal flags (which you cannot set manually under normal circumstances): zero flag, and carry flag. zero flag is set when a math or bitwise operation results in a value of 0. the carry flag, however, is set when an arithmetic operation results in an underflow/overflow. it is a bit of a misnomer, because the carry flag acts more like a borrow flag when doing subtraction, and it is not affected by any bitwise instruction. however as all official documentation refers to it as a carry flag, it will be referred to as the carry flag for simplicity.</p>
+<p>the <kbd>add</kbd> instruction will simply add the number from the source operand into the destination operand; the source operand will remain unchanged (arithmetic operations here are in hexadecimal):</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0x00001000</kbd>; <kbd>r1</kbd> contains <kbd>0x00000080</kbd></li>
+  <li>we execute <kbd>add r0, r1</kbd></li>
+  <li><kbd>r0</kbd> contains <kbd>0x00001080</kbd>; <kbd>r1</kbd> contains <kbd>0x00000080</kbd></li>
+</ul>
+<p>the above operation can be simplified into <kbd>add r0, 0x80</kbd>, freeing up a register. this (and the above information) applies to <kbd>sub</kbd> (SUBtract), only with subtraction rather than addition.</p>
+<p>when using arithmetic instructions, it is important to remember that the size will affect your results (i.e it will only operate on that many bits). for example: </p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0x00000080</kbd></li>
+  <li>we execute <kbd>add.8 r0, 0x80</kbd></li>
+  <li><kbd>r0</kbd> contains <kbd>0x00000000</kbd>(!!) instead of the expected <kbd>0x00000100</kbd>; <kbd>r0</kbd> has overflowed</li>
+</ul>
+<p>if the resulting value is too large to fit in a 32-bit register (or too large to fit in the operation size), it will either overflow or underflow. in both cases, the carry flag will be set.</p>
+<p>the <kbd>inc</kbd> (INCrement) and <kbd>dec</kbd> (DECrement) are specialised cases of <kbd>add</kbd> and <kbd>sub</kbd>, respectively, but their source operand is fixed to an immediate type, and only allows values of 1, 2, 4, and 8.</p>
+<p>why would we need this? we can just write <kbd>add r0, 1</kbd> and be done with it. we can of course write it that way, but the difference is in size: <kbd>add r0, 8</kbd> (with the default .32 operation size) assembles into 7 bytes (smaller operation sizes mean smaller assembly, but for reasons mentioned above, may have an undesirable effect on math operations). meanwhile the equivalent <kbd>inc r0, 8</kbd> only assembles into 3 bytes, a ~42.8% decrease in size, and is massively helpful in saving space!</p>
+<h2>bse, bcl, not, and, or, xor</h2>
+<p>these instructions are bitwise instructions, and require a little understanding about how boolean algebra works. the simplest instruction is <kbd>bse</kbd> (Bit SEt) and <kbd>bcl</kbd> (Bit CLear), which set and clear a bit in the target operand, with the bit to set/clear specified by the source operand:</p>
+<ul>
+  <li><kbd>r0</kbd> contain <kbd>0b00000001</kbd></li>
+  <li>we execute <kbd>bse r0, 4</kbd> to set bit 4 of r0</li>
+  <li><kbd>r0</kbd> now contains <kbd>0b00001001</kbd></li>
+  <li>we execute <kbd>bcl r0, 0</kbd> to clear bit 0 of r0</li>
+  <li><kbd>r0</kbd> now contains <kbd>0b00001000</kbd></li>
+</ul>
+<p>it should be noted that immediate types for the <kbd>bse</kbd> and <kbd>bcl</kbd> instructions are always 8 bits, and will always assemble to a fixed size of 4 bytes at minimum no matter the operation size (<kbd>bse.8</kbd>, <kbd>bse.16</kbd>, <kbd>bse.32</kbd> will assemble to 4 bytes at minimum). the only effect then that the operation size has on <kbd>bse</kbd> and <kbd>bcl</kbd> is that immediate values larger than the size are ineffective (<kbd>bse.8 r0, 16</kbd> will not set bit 16 of r0, for example).</p>
+<p><kbd>bse</kbd>, <kbd>bcl</kbd>, as well as <kbd>bts</kbd> count bits from the lowest bit:</p>
+<pre><code>    0101 0101
+    |       ^--- bit 0
+    +----------- bit 7</code></pre>
+<p>the <kbd>not</kbd>, which performs a bitwise NOT on the target operand, which just inverts every bit in the target operand (<kbd>0 -&gt; 1</kbd> ; <kbd>1 -&gt; 0</kbd>):</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0b11001010</kbd></li>
+  <li>we execute <kbd>not r0</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0b00110101</kbd></li>
+</ul>
+<pre><code>    1100 1010 (0xCA)
+    |||| |||| 
+    VVVV VVVV (0 -> 1 ; 1 -> 0)
+    0011 0101 (0x35)</code></pre>
+<p>as always, the <kbd>not</kbd> instruction is affected by the operation size, so <kbd>not.8</kbd> will only perform the bitwise NOT on the lower 8 bits of the operand, and <kbd>not.16</kbd> only on the lower 16 bits. this also applies to every instruction in this section. it will not work on immediates, because the resulting syntax <kbd>not.8 0x80</kbd> is nonsensical.</p>
+<p>the <kbd>and</kbd> instruction performs a bitwise AND on the target operand with the source operand. in other words, it takes 2 bits in, and outputs a 0 if one of the inputs is 0:</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0b11110101</kbd></li>
+  <li>we execute <kbd>and r0, 0b00001111</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0b00000101</kbd></li>
+</ul>
+<pre><code>    1111 0101 (0xF5)
+AND 0000 1111 (0x0F)
+    ---------
+    0000 0101 (0x05)</code></pre>
+<p>the <kbd>or</kbd> instruction performs a bitwise OR on the target operand with the source operand. in other words, it takes 2 bits in, and outputs a 1 if any of the inputs is 1:</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0b11110001</kbd></li>
+  <li>we execute <kbd>or r0, 0b00001111</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0b11111111</kbd></li>
+</ul>
+<pre><code>    1111 0001 (0xF1)
+OR  0000 1111 (0x0F)
+    ---------
+    1111 1111 (0xFF)</code></pre>
+<p>the <kbd>xor</kbd> instruction performs a bitwise XOR (eXclusive OR) on the target operand with the source operand. in other words, it takes 2 bits in, and outputs a 1 if ONLY one of the inputs is 1 - the difference between XOR and OR is that if both inputs are 1, XOR outputs a 0:</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0b11110001</kbd></li>
+  <li>we execute <kbd>xor r0, 0b10101111</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0b01011110</kbd></li>
+</ul>
+<pre><code>    1111 0001 (0xF1)
+XOR 1010 1111 (0xAF)
+    ---------
+    0101 1110 (0x5E)</code></pre>
+<h2>sla, sra, srl, rol, ror</h2>
+<p>there are 3 bit-shifting instructions: <kbd>sla</kbd> (Shift Left Arithmetic), <kbd>sra</kbd> (Shift Right Arithmetic) and <kbd>srl</kbd> (Shift Right Logical). just like <kbd>bse</kbd> and <kbd>bcl</kbd>, immediate values are fixed to 8 bits. they are basically what it says on the tin: they shift bits in the target operand by the value in the source operand. take this example of <kbd>sla</kbd>, that shifts the target operand left by the value in the source operand:</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0b10110011</kbd></li>
+  <li>we execute <kbd>sla.8 r0, 1</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0b01100110</kbd></li>
+</ul>
+<pre><code>    +----------- this bit is discarded
+    |
+    1011 0011 
+    //// ///
+    |||| |||
+    0110 0110 <- shift a 0 into here</code></pre>
+<p>the <kbd>sra</kbd> and <kbd>srl</kbd> instructions are mostly the same, they shift the bits in the target operand right by the value in the source operand. the difference is <kbd>sra</kbd> is an arithmetic left shift, meaning the sign bit will be duplicated into the bit next to it:</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0b10110011</kbd></li>
+  <li>we execute <kbd>sra r0, 1</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0b11011001</kbd></li>
+</ul>
+<p>compare this to <kbd>srl</kbd>:</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0b10110011</kbd></li>
+  <li>we execute <kbd>srl r0, 1</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0b01011001</kbd></li>
+</ul>
+<pre><code>(srl)
+    1011 0011 <- this bit is discarded
+    \\\\ \\\
+     |||\|||
+    0101 1001
+    ^----------- shift a 0 into here
+(sra)
+    1011 0011 <- this bit is discarded
+    |\\\ \\\
+    ||||\|||
+    1101 1001
+    ^^---------- contents of sign bit shifted in</code></pre>
+<p>the <kbd>rol</kbd> (ROtate Left) and <kbd>ror</kbd> (ROtate Right) instructions are functionally similar to the <kbd>sla</kbd> and <kbd>sra/srl</kbd> instruction, but the discarded bit is shifted into the upper/lower bit:</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0b00110011</kbd></li>
+  <li>we execute <kbd>ror r0, 1</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0b10011001</kbd></li>
+</ul>
+<pre><code>    0011 0011--+
+     || \|||   |
+     \\\ \\\   |
+    1001 1001  |
+    ^----------+</code></pre>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0b10110011</kbd></li>
+  <li>we execute <kbd>rol r0, 1</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0b01100111</kbd></li>
+</ul>
+<pre><code>    +----------+
+    |          |
+    1011 0011  |
+     ||| ||||  |
+     |||/ |||  |
+    //// ///   |
+    |||| |||   |
+    0110 0111<-+</code></pre>
+<h2>mul/imul, div/idiv, rem/irem</h2>
+<p>the <kbd>mul</kbd> (MULtiply) and <kbd>imul</kbd> (Integer MULtiply) instructions are used to... well, multiply. the difference is that <kbd>mul</kbd> is an <b>unsigned</b> multiplication and <kbd>imul</kbd> is a <b>signed</b> multiplication. this has no noticeable effect on the final result, but affects how the carry flag is set.</p>
+<p>for <kbd>mul</kbd> (unsigned):</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0xFFFFFFFF</kbd></li>
+  <li>we execute <kbd>mul r0, 0x02</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0xFFFFFFFE</kbd>; carry flag is set, as the operation caused an unsigned overflow: 4294967295 * 2 &gt; 4294967295</li>
+</ul>
+<p>compare this to <kbd>imul</kbd> (signed):</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0xFFFFFFFF</kbd> (-1)</li>
+  <li>we execute <kbd>imul r0, 0x02</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0xFFFFFFFE</kbd> (-2); carry flag is cleared, as the operation did not cause a signed overflow: -1 * 2 = -2, which fits inside a signed 32-bit value</li>
+</ul>
+<p>the <kbd>div</kbd> (DIVide) and <kbd>idiv</kbd> (Integer DIVide) instructions are also used to divide unsigned values and signed value, respectively. however, unlike <kbd>mul/imul</kbd>, the sign of the operation affects the final result. this also applies to <kbd>rem</kbd> (REMainder) and <kbd>irem</kbd> (Integer REMainder). unlike the rest of the math operations available, <kbd>div/idiv</kbd> and <kbd>rem/irem</kbd> do not affect the carry flag, therefore they only affect the zero flag.</p>
+<p>for <kbd>div</kbd> (unsigned):</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0xFFFFFFFF</kbd> (4294967295)</li>
+  <li>we execute <kbd>div r0, 10</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0x19999999</kbd> (4294967295 / 10 ~= 429496729)</li>
+</ul>
+<p>for <kbd>idiv</kbd> (signed):</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0xFFFFFFFF</kbd> (-1)</li>
+  <li>we execute <kbd>idiv r0, 10</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0</kbd> (-1 / 10 ~= 0)</li>
+</ul>
+<p>wait! why did it return a <kbd>0</kbd>? <kbd>-1 / 10</kbd> should be a <kbd>-0.1</kbd>! this is because <kbd>div/idiv</kbd> throws away the fractional part, leaving only the integer part. this is important behaviour to remember, as there is no floating point support on fox32!</p>
+<p>the <kbd>rem/irem</kbd> instructions are relatively simpler, as they always return an integer with no fractional part, so their result only depends on the sign of the operation.</p>
+<p>for <kbd>rem</kbd> (unsigned):</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0xFFFFFFFF</kbd> (4294967295)</li>
+  <li>we execute <kbd>rem r0, 10</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0x00000005</kbd> (the remainder of (4294967295 / 10) is 5)</li>
+</ul>
+<p>for <kbd>irem</kbd> (signed):</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0xFFFFFFFF</kbd> (-1)</li>
+  <li>we execute <kbd>irem r0, 10</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0xFFFFFFFF</kbd> (the remainder of (-1 / 10) is -1)</li>
+</ul>
+<h2>the stack, push, pop</h2>
+<p>the stack pointer is located in the register <kbd>rsp</kbd>, and grows downward as values are pushed. <kbd>push</kbd> will push a new value onto the stack and decrement <kbd>rsp</kbd>. <kbd>pop</kbd> will pop a value off the stack and increment <kbd>rsp</kbd>. the amount that <kbd>rsp</kbd> is incremented or decremented by depends on operation size. </p>
+<p><b>note: <kbd>rsp</kbd> does not enforce any alignment!</b> therefore, <kbd>rsp</kbd> can be unaligned and values can still be pushed and popped normally.</p>
+<pre><code>    push.8  69           ; push 1 byte onto the stack
+    push.16 1616         ; push 2 bytes onto the stack
+    push.32 76768        ; push 4 bytes onto the stack
+    ; rsp at this point is rsp+7
+    pop.32  r0           ; pop 76768 into r0
+    pop.16  r1           ; pop 1616 into r1
+    pop.8   r0           ; pop 69 into r0</code></pre>
+<p>another behaviour to consider is that <kbd>pop</kbd> will not zero-extend, therefore any residual data in wherever you popped to will remain:</p>
+<ul>
+  <li>the last value pushed to stack was <kbd>0x45</kbd></li>
+  <li><kbd>r0</kbd> contains <kbd>0xDEADBEEF</kbd></li>
+  <li>we execute <kbd>pop.8 r0</kbd></li>
+  <li><kbd>r0</kbd> now contains <kbd>0xDEADBE45</kbd></li>
+</ul>
+<h2>jmp/rjmp, loop/rloop, call/rcall, ret, rta</h2>
+<p>these instructions affect program flow, and apart from <kbd>ret</kbd>, they can take an absolute operand (<kbd>jmp</kbd>, <kbd>loop</kbd>, <kbd>call</kbd>) or they can take a relative operand that points to the instruction to jump to, indicated by an <kbd>r</kbd> for Relative (<kbd>rjmp</kbd>, <kbd>rloop</kbd>, <kbd>rcall</kbd>). relative instructions can also take an operation size (<kbd>.8/.16/.32</kbd>), while absolute instructions can only take a 32-bit size.</p>
+<p><kbd>jmp</kbd> (JuMP) loads the source operand into <kbd>rip</kbd>, the instruction pointer:</p>
+<ul>
+  <li><kbd>rip</kbd> contains <kbd>0x03DC805A</kbd></li>
+  <li>we execute <kbd>jmp 0x03FF8000</kbd></li>
+  <li><kbd>rip</kbd> now contains <kbd>0x03FF8000</kbd></li>
+</ul>
+<p><kbd>rjmp</kbd> (Relative JuMP) <b>adds</b> the source operand into <kbd>rip</kbd>:</p>
+<ul>
+  <li><kbd>rip</kbd> contains <kbd>0x03FF8000</kbd></li>
+  <li>we execute <kbd>rjmp 3</kbd></li>
+  <li><kbd>rip</kbd> now contains <kbd>0x03FF8003</kbd></li>
+  <li>we execute <kbd>rjmp -7</kbd></li>
+  <li><kbd>rip</kbd> now contains <kbd>0x03FF7FFC</kbd></li>
+</ul>
+<p><kbd>loop</kbd> decrements <kbd>r31</kbd>, and if it is not zero, it loads the source operand into <kbd>rip</kbd> (the relative equivalent <kbd>rloop</kbd> <b>adds</b> the source operand to <kbd>rip</kbd> instead). otherwise, the loop is terminated and execution continues to the next instruction. it is quite useful in making quick and easy loops:</p>
+<pre><code>    movz.16 r31, 16384 ; repeat 16384 times
+_0:
+    ; do something here
+    loop    _0</code></pre>
+<p>the loop above will repeat 16384 times. internally, it decrements <kbd>r31</kbd> first before it does the zero-check, and it will do this until the register is 0, at which point the loop terminates. therefore, it will count from 16383 down to 1.</p>
+<p><kbd>call</kbd> (and its relative counterpart <kbd>rcall</kbd>) is used for making subroutines and functions. when a <kbd>call</kbd> is encountered, the processor pushes the current <kbd>rip</kbd> to the stack as a 32-bit value, and loads (or adds for <kbd>rcall</kbd>) the source operand into <kbd>rip</kbd>. the old <kbd>rip</kbd> can be restored after the function is done with <kbd>ret</kbd>, which pops the last 32-bit value on the stack into <kbd>rip</kbd>.</p>
+<pre><code>    call subroutine
+    ; do some stuff here
+    ; ...
+subroutine:
+    ; do some more stuff here
+    ret</code></pre>
+<p>you should take note to save the registers if you want to preserve all registers as-is by the time the subroutine has finished using <kbd>push</kbd> and <kbd>pop</kbd>.</p>
+<p><kbd>rta</kbd> (Relative To Absolute), while it does not affect program flow, is still important because it allows for true position independent code in conjunction with <kbd>rjmp</kbd>, <kbd>rloop</kbd>, and <kbd>rcall</kbd>. it takes a relative offset specified in the source operand, adds it into <kbd>rip</kbd>, and loads the final result back into the target operand. take this piece of code for example:</p>
+<pre><code>    org 0x800
+    
+    rta r0, some_data ; in the assembler, this translates to rta r0, 0x0C
+    nop
+    nop
+    nop
+    nop
+some_data: data.8 0</code></pre>
+<ul>
+  <li>we execute <kbd>rta r0, some_data</kbd> (<kbd>rip</kbd> contains <kbd>0x800</kbd> at this point)</li>
+  <li><kbd>r0</kbd> now contains <kbd>0x80C</kbd> (<kbd>rip+0x0C</kbd>)</li>
+</ul>
+<h2>condition codes, cmp, icmp, bts</h2>
+<p>the fox32 architecture does not utilise separate conditional instructions unlike other architectures. it instead encodes the condition directly into the instruction, meaning instructions can be run predicatively, instead of jumping to another block of code to run the instruction. there are 6 condition codes (7 if you include <kbd>always</kbd>):</p>
+<ul>
+  <li><kbd>ifz</kbd> - execute if zero flag is set. this condition is equivalent to &quot;Equal To&quot;</li>
+  <li><kbd>ifnz</kbd> - execute if zero flag is not set. this condition is equivalent to &quot;Not Equal To&quot;</li>
+  <li><kbd>ifc/iflt</kbd> - execute if carry flag is set. this condition is equivalent to &quot;Lesser Than&quot;</li>
+  <li><kbd>ifnc/ifgteq</kbd> - execute if carry flag is not set. this condition is equivalent to &quot;Greater Than or Equal To&quot;</li>
+  <li><kbd>ifgt</kbd> - execute if neither zero flag nor carry flag is set. this condition is equivalent to &quot;Greater Than&quot;</li>
+  <li><kbd>iflteq</kbd> - execute if zero flag or carry flag is set. this condition is equivalent to &quot;Lesser Than or Equal To&quot;</li>
+</ul>
+<p>this means that entire blocks of code can be written predicatively:</p>
+<pre><code>    cmp r1, 20
+    iflteq ret</code></pre>
+<p>you should be careful when using arithmetic/bitwise operations, as those do modify the flags, meaning the original condition may be clobbered:</p>
+<pre><code>    mov r1, 21
+    cmp r1, 20      ; r0 != 20, so zero flag is CLEARED
+                    ; the next instruction will execute because zero flag is 0
+    ifnz sub r1, 21 ; this will SET the zero flag, because 21 - 21 = 0
+    ifnz ret        ; thus, this ret will not execute, because the zero flag was clobbered by the instruction above it</code></pre>
+<p>the <kbd>cmp</kbd> (CoMPare) instruction compares the target operand with the source operand and sets the carry flag and zero flag accordingly. internally, it determines how to set the carry and zero flag like this:</p>
+<pre><code>carry = (source_operand > target_operand);
+zero = (target_operand == source_operand);</code></pre>
+<p>it can be thought of doing a subtraction operation, only that the result is not written back, it only affects the carry and zero flags.</p>
+<p><kbd>icmp</kbd> (Integer CoMPare) is just a signed version of the <kbd>cmp</kbd> instruction, which affects how the flags are set.</p>
+<p>for <kbd>cmp</kbd> (unsigned):</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>1</kbd></li>
+  <li>we execute <kbd>cmp r0, 0xFFFFFFFF</kbd> (4294967295)</li>
+  <li>the carry flag is set, because 4294967295 is larger than 1</li>
+</ul>
+<p>for <kbd>icmp</kbd> (signed):</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>1</kbd></li>
+  <li>we execute <kbd>cmp r0, 0xFFFFFFFF</kbd> (-1)</li>
+  <li>the carry flag is cleared, because -1 is NOT larger than 1</li>
+</ul>
+<p><kbd>bts</kbd> (Bit TeSt) will test a specific bit (specified by the source operand) in the target operand. what this actually means is that it just loads an inverted copy of that bit into the zero flag:</p>
+<ul>
+  <li><kbd>r0</kbd> contains <kbd>0b00010000</kbd></li>
+  <li>we execute <kbd>bts r0, 4</kbd></li>
+  <li>bit 4 is copied into the zero flag. the zero flag is cleared, because bit 4 was set to <kbd>1</kbd>.</li>
+</ul>
