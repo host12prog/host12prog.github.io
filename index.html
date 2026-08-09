@@ -644,30 +644,30 @@ set_swap_sp:
 <p><i><b><a href="#table-of-contents">back to table of contents</a></b></i></p>
 <h3 id="the-audio">the audio</h3>
 <p>the audio controller manages 8 PCM audio channels, summing them together to produce the final audio output. it has a maximum output rate of 48 kHz and has 2 modes: DMA (Direct Memory Access) mode, and buffer mode. in DMA mode, you can use 8 channels of PCM, and the audio controller will automatically fetch the samples when needed, freeing up the processor to do other tasks. in buffer mode, those channels are unavailable, and audio data must instead be provided by the processor at regular intervals. in both modes, the audio controller can fetch and output signed 8-bit or signed 16-bit PCM samples.</p>
-<p>registers for the 8 audio channels are accessed at 0x00-0x7F. the upper nibble determines the channel number, while the lower nibble determines the register.</p>
+<p>registers for the 8 audio channels are accessed at 0x600-0x67F. the upper nibble determines the channel number, while the lower nibble determines the register. general audio controller registers start at 0x680 and continue to 0x684, with ports 0x685..0x6FF reserved for future use.</p>
 <p><i>PCM channel port mappings (N=0..7)</i></p>
 <table border="1"><thead>
   <tr><th>port</th><th>description</th></tr>
 </thead><tbody>
-  <tr><td>0xN0</td><td>audio channel X sample start (write), current sample position (read)</td></tr>
-  <tr><td>0xN1</td><td>audio channel X sample end (write), current output sample (read)</td></tr>
-  <tr><td>0xN2</td><td>audio channel X loop point start (write-only)</td></tr>
-  <tr><td>0xN3</td><td>audio channel X loop point end (write-only)</td></tr>
-  <tr><td>0xN4</td><td>audio channel X sample rate (write-only), current channel phase (read)</td></tr>
-  <tr><td>0xN5</td><td>audio channel X control</td></tr>
-  <tr><td>0xN6</td><td>audio channel X panning</td></tr>
+  <tr><td>0x6N0</td><td>audio channel X sample start (write), current sample position (read)</td></tr>
+  <tr><td>0x6N1</td><td>audio channel X sample end (write), current output sample (read)</td></tr>
+  <tr><td>0x6N2</td><td>audio channel X loop point start (write-only)</td></tr>
+  <tr><td>0x6N3</td><td>audio channel X loop point end (write-only)</td></tr>
+  <tr><td>0x6N4</td><td>audio channel X sample rate (write-only), current channel phase (read)</td></tr>
+  <tr><td>0x6N5</td><td>audio channel X control</td></tr>
+  <tr><td>0x6N6</td><td>audio channel X panning</td></tr>
 </tbody></table>
 <p><i>general audio controller port mappings</i></p>
 <table border="1"><thead>
   <tr><th>port</th><th>description</th></tr>
 </thead><tbody>
-  <tr><td>0x80</td><td>audio controller sample base</td></tr>
-  <tr><td>0x81</td><td>audio controller control</td></tr>
-  <tr><td>0x82</td><td>audio controller buffer 0 start location</td></tr>
-  <tr><td>0x83</td><td>audio controller buffer 1 start location</td></tr>
-  <tr><td>0x84</td><td>audio controller buffer length</td></tr>
+  <tr><td>0x680</td><td>audio controller sample base</td></tr>
+  <tr><td>0x681</td><td>audio controller control</td></tr>
+  <tr><td>0x682</td><td>audio controller buffer 0 start location</td></tr>
+  <tr><td>0x683</td><td>audio controller buffer 1 start location</td></tr>
+  <tr><td>0x684</td><td>audio controller buffer length</td></tr>
 </tbody></table>
-<p><i>port 0x81 (audio controller control)</i></p>
+<p><i>port 0x681 (audio controller control)</i></p>
 <pre><code>bit 15...... .......0
     |               |
     RRRRRRRR --FF-10M
@@ -677,12 +677,12 @@ set_swap_sp:
     ||||||||   ``------- buffer format (00 - mono 8-bit, 01 - mono 16-bit, 10 - stereo 8-bit, 11 - stereo 16-bit)
     ````````------------ buffer rate (0..128)</code></pre>
 <h4 id="dma-mode">dma mode</h4>
-<p>sample start points and end points must be specified in bytes relative to the sample base (set in port 0x80). this means if a sample is 8000 bytes long and is located at the very beginning of sample base(and uses 8-bit PCM), the sample start point should be set to 0, and the sample end point to 8000. if it&#x27;s 16-bit PCM, the end point is at byte 16000. this also applies to the start points and end points for looping.</p>
-<p>samples are fetched at the sample rate specified in port 0xN4, which is a value ranging from 0-65536, giving an effective frequency range of 0hz-48khz. samples in this mode can also be only mono, and 16-bit samples are fetched in little-endian halves. the sample rate is calculated with the formula:</p>
+<p>sample start points and end points must be specified in bytes relative to the sample base (set in port 0x680). this means if a sample is 8000 samples long and is located at the very beginning of sample base (and uses 8-bit PCM), the sample start point should be set to 0, and the sample end point to 8000. if it&#x27;s 16-bit PCM, the end point is at byte 16000. this also applies to the start points and end points for looping.</p>
+<p>samples are fetched at the sample rate specified in port 0x6N4, which is a value ranging from 0-65536, giving an effective frequency range of 0hz-48khz. samples in this mode can also be only mono, and 16-bit samples are fetched in little-endian halves. the sample rate is calculated with the formula:</p>
 <pre><code>              frequency * 2^16
 sample rate = ----------------
                    48000</code></pre>
-<p>the sample playback behaviour is determined in the control port (0xN5). 9 bits are used to determine playback:</p>
+<p>the sample playback behaviour is determined in the control port (0x6N5). 9 bits are used to determine playback:</p>
 <pre><code>bit 9. .......0
     |         |
     PE LVVVVVVV
@@ -698,7 +698,7 @@ sample rate = ----------------
     |||||||| ````````--- right channel volume (0..255, where 0 is silent and 255 is loudest)
     ````````------------ left channel volume</code></pre>
 <p>the samples are modulated using the volumes in the order: control volume -&gt; left/right volume. therefore, it is usually better to leave the channel at maximum control volume, then modulate the volume with the panning register.</p>
-<p>it is important to note that when reading the current sample output via port 0xN1, the sample that is returned is actually the raw sample data that hasn&#x27;t been modulated by the volume registers. therefore, if you are planning to plot it on an oscilloscope, you must scale the output manually in software. another peculiarity is that when reading 8-bit PCM samples, the maximum output that can be returned is 0x7f00. internally, the audio controller always outputs 16-bit PCM, but to facilitate 8-bit PCM output, all 8-bit samples are shifted up by 8 bits to get a 16-bit output.</p>
+<p>it is important to note that when reading the current sample output via port 0x6N1, the sample that is returned is actually the raw sample data that hasn&#x27;t been modulated by the volume registers. therefore, if you are planning to plot it on an oscilloscope, you must scale the output manually in software. another peculiarity is that when reading 8-bit PCM samples, the maximum output that can be returned is 0x7f00. internally, the audio controller always outputs 16-bit PCM, but to facilitate 8-bit PCM output, all 8-bit samples are shifted up by 8 bits to get a 16-bit output.</p>
 <p><i>(the information below may not necessarily be useful to programmers, but may be useful for emulator developers)</i></p>
 <p>internally, the audio controller uses a 16.16 fixedpoint phase accumulator to determine when to fetch samples in DMA mode. the behaviour of this accumulator can be best described with the following pseudocode:</p>
 <pre><code>Phase := 0
@@ -711,7 +711,7 @@ WHILE ChannelEnabled DO
     END
 END</code></pre>
 <h4 id="buffer-mode">buffer mode</h4>
-<p>buffer mode is enabled when bit 0 of the control register (port 0x81) is set to 1. in this mode, samples are no longer automatically fetched according to a set start and endpoint (this also makes the 8 PCM channels unusable). instead, the audio controller uses 2 buffers (buffer 0 and buffer 1) to output samples. when the controller starts reading samples, it will read buffer 0 first. when it has reached the end of buffer 0, it will interrupt to the CPU to refill buffer 0 (vector 0xFD), while it starts reading buffer 1. when it reaches the end of buffer 1, it will also interrupt the CPU to refill buffer 1 (vector 0xFE), and restarts reading from buffer 0. the start address for buffer 0 is determined by port 0x82, and 0x83 for buffer 1. the length of these buffers (in bytes) is determined by port 0x84. </p>
+<p>buffer mode is enabled when bit 0 of the control register (port 0x681) is set to 1. in this mode, samples are no longer automatically fetched according to a set start and endpoint (this also makes the 8 PCM channels unusable). instead, the audio controller uses 2 buffers (buffer 0 and buffer 1) to output samples. when the controller starts reading samples, it will read buffer 0 first. when it has reached the end of buffer 0, it will interrupt to the CPU to refill buffer 0 (vector 0xFD), while it starts reading buffer 1. when it reaches the end of buffer 1, it will also interrupt the CPU to refill buffer 1 (vector 0xFE), and restarts reading from buffer 0. the start address for buffer 0 is determined by port 0x682, and 0x683 for buffer 1. the length of these buffers (in bytes) is determined by port 0x684. </p>
 <p>stereo samples are fetched as frames containing left and right samples. for instance, if the buffer is set to stereo 8-bit PCM, it fetches the left sample first (1 byte), then the right sample last (1 byte), advancing the internal position by 2 bytes. for stereo 16-bit PCM, it fetches the left sample word first (2 bytes) and the right sample word last (2 bytes), advancing the internal position by 4 bytes.</p>
 <p>like DMA mode, samples are fetched from the buffer at the rate specified in bits 15:8 in the control register. it works exactly like the DMA mode&#x27;s phase accumulator, but the range has been reduced to 8 bits. the maximum rate in buffer mode is 128, meaning a sample rate of 48khz. the buffer rate can be calculated with the formula:</p>
 <pre><code>               frequency * 2^8 
@@ -728,7 +728,7 @@ buffer rate = -----------------
     out 0x80000681, r0</code></pre>
 <p><i><b><a href="#table-of-contents">back to table of contents</a></b></i></p>
 <h3 id="the-real-time-clock-the-interval-timers">the real-time clock & the interval timers</h3>
-<p>the fox32 computer contains a real-time clock, and 4 programmable interval timers that can be set to cause an interrupt at specified regular intervals. the real-time clock is located at ports 0x700-0x708. the timers are located at ports 0x709-0x70F.</p>
+<p>the fox32 computer contains a real-time clock, and 4 programmable interval timers that can be set to cause an interrupt at specified regular intervals. the real-time clock is located at ports 0x700-0x708. the timers are located at ports 0x709-0x70F. the real-time clock in the emulator is linked to the host&#x27;s current time, meaning they can be used for calendars, clocks, etc... the interval timers are mostly for scheduling code to be executed at certain intervals, and are not temporally accurate at sub-frame timings, because they are ticked according to CPU instruction ticks (which are emulated in short bursts), rather than real time. therefore, they are not recommended to use them for precise timekeeping applications.</p>
 <p><i>real-time clock port mappings</i></p>
 <table border="1"><thead>
   <tr><th>port</th><th>description</th></tr>
@@ -755,7 +755,6 @@ buffer rate = -----------------
   <tr><td>0x70E</td><td>timer C period (write), counter (read)</td></tr>
   <tr><td>0x70F</td><td>timer D period (write), counter (read)</td></tr>
 </tbody></table>
-<p>the tick counter increments by 1 every N instructions, where N is the value in the tick base register. it can be used as a timing source for interval timers, alongside instruction cycles. if instruction cycles are used as the timing source, it essentially acts like if the tick counter incremented by 1 every instruction. </p>
 <p>all bits in the timer control register are grouped together in the order: timer D -&gt; timer C -&gt; timer B -&gt; timer A.</p>
 <p><i>port 0x70B (timer control)</i></p>
 <table border="1"><thead>
@@ -768,13 +767,13 @@ buffer rate = -----------------
   <tr><td>7:4</td><td>0=no interrupt pending, 1=interrupt pending</td></tr>
   <tr><td>3:0</td><td>0=disable timer, 1=enable timer</td></tr>
 </tbody></table>
+<p>the tick counter increments by 1 every N instructions, where N is the value in the tick base register (port 0x70A). it can be used as a timing source for interval timers, alongside instruction cycles. if the clock is set to clock per tick, then every time the tick counter increases by 1, the timers that are clocked according to it decrease by 1, meaning that the tick counter acts like a period divisor, as opposed to timers clocked per cycle, which decrement by 1 every instruction.</p>
 <p>timers count down from the period, set in ports 0x0C-0x0F, to 0. an interrupt is triggered during the transition from 1 to 0. writing to the timer&#x27;s period port will not reset the counter, and the new period will only take effect after its current period has finished. the counter can be reset with the new period by writing a 1 to bits 16-19 to force reload it.</p>
-<p>when the timer is set to one-shot mode, after the timer expires, the period will not be automatically reloaded into the counter. on the other hand, continuous mode will reload the period into the counter after the timer expires. if the clock is set to &quot;clock per tick&quot;, then every time the tick counter increases by 1, the timers clocked according to it decrease by 1, meaning that the tick counter acts like a period diviso, as opposed to timers clocked per cycle, which decrement by 1 every instruction.</p>
+<p>when the timer is set to one-shot mode, after the timer expires, the period will not be automatically reloaded into the counter. on the other hand, continuous mode will reload the period into the counter after the timer expires.</p>
 <p>during a timer interrupt, the handler must acknowledge the interrupt by writing a 0 to bits 4-7. this can be done with the following:</p>
 <pre><code>    in r0, 0x8000070B
     bcl r0, 4 ; acknowledge timer A interrupt
     out 0x8000070B, r0</code></pre>
-<p>it should be noted that the timers are only useful for scheduling code to be executed at certain intervals, because they are ticked according to CPU instruction ticks, rather than real time. because instructions are emulated in short bursts, they are not guaranteed to be temporally accurate at sub-frame intervals. as such, it is not recommended to use them for precise timekeeping applications.</p>
 <p><i><b><a href="#table-of-contents">back to table of contents</a></b></i></p>
 <h3 id="the-disk-controller">the disk controller</h3>
 <p>the disk controller is located at ports 0x1000 to 0x5003. there are only 4 disk ports, specified by the lower nibble of the port (0x1002 means disk port 2). each disk is organised into 512-byte sectors. the 0x100N (N=0..3) ports are read-only and return the disk size (in bytes!). port 0x200N determines where the data buffer for disk read and write operations is in RAM. port 0x300N is a write-only strobe register that initiates a disk read, and writes the content of the disk into the data buffer specified by port 0x200N. port 0x400N is also a write-only strobe register like 0x300N, but for disk writes, and reads the content of the data buffer and writes it onto the disk. in both cases, the value that should be written into them should be a disk sector number. the disk controller is synchronous, meaning the processor will be halted during a disk read or write! to eject or remove a disk, write any value into port 0x500N.</p>
