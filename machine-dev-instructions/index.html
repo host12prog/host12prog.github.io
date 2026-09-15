@@ -163,8 +163,8 @@ DEY - $F9</code></pre>
 <h3 id="operation">Operation</h3>
 <p>[destination] ← [source] ^ [destination]</p>
 <h3 id="syntax">Syntax</h3>
-<pre><code>EOR An, #imm8 - $Bn40 + imm8 (1 byte)
-EOR An, Am    - $An4m</code></pre>
+<pre><code>EOR An, Am    - $An4m
+EOR An, #imm8 - $Bn40 + imm8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
 <p>The immediate form takes 6 cycles, while the register form takes 5 cycles.</p>
 <h3 id="description">Description</h3>
@@ -182,8 +182,8 @@ EOR An, Am    - $An4m</code></pre>
 <h3 id="operation">Operation</h3>
 <p>[destination] ← [I/O port]</p>
 <h3 id="syntax">Syntax</h3>
-<pre><code>INA An, #imm8 - $An8m
-INA An, Am    - $Bn80 + imm8 (1 byte)</code></pre>
+<pre><code>INA An, Am    - $An8m
+INA An, #imm8 - $Bn80 + imm8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
 <p>At minimum, <kbd>INA</kbd> will take 5 cycles to complete (6 cycles if using the immediate form). This number may be higher due to system design.</p>
 <h3 id="description">Description</h3>
@@ -327,8 +327,8 @@ ORA An, Am - $An3m</code></pre>
 <h3 id="operation">Operation</h3>
 <p>[I/O port] ← [destination]</p>
 <h3 id="syntax">Syntax</h3>
-<pre><code>OUT #imm8, An - $AnFm
-OUT Am, An    - $BnF0 + imm8 (1 byte)</code></pre>
+<pre><code>OUT Am, An    - $AnFm
+OUT #imm8, An - $BnF0 + imm8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
 <p>At minimum, <kbd>OUT</kbd> will take 5 cycles to complete (6 cycles if using the immediate form). This number may be higher due to system design.</p>
 <h3 id="description">Description</h3>
