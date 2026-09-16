@@ -2,7 +2,7 @@
 <head>
   <meta charset="UTF-8">
   <title>f-isa instructions documentation</title>
-  <meta name="description" content="a reference document on the internals of fox32">
+  <meta name="description" content="a reference document on f-isa">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#644767">
   <meta property="og:type" content="website">
@@ -99,7 +99,7 @@
 <pre><code>ADD An, Am    - $An0m
 ADD An, #imm8 - $Bn00 + imm8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
-<p>The immediate form takes 6 cycles, while the register form takes 5 cycles.</p>
+<p>The immediate form takes 5 cycles, while the register form takes 4 cycles.</p>
 <h3 id="description">Description</h3>
 <p>Add the source operand (<kbd>Am</kbd> or <kbd>imm8</kbd>) to the destination operand (<kbd>An</kbd>) and store the result in the destination location. <kbd>C</kbd> will be set to <kbd>1</kbd> if an overflow occurred, <kbd>0</kbd> if not.</p>
 <h2 id="and---bitwise-and">AND - Bitwise AND</h2>
@@ -109,7 +109,7 @@ ADD An, #imm8 - $Bn00 + imm8 (1 byte)</code></pre>
 <pre><code>AND An, Am    - $An2m
 AND An, #imm8 - $Bn20 + imm8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
-<p>The immediate form takes 6 cycles, while the register form takes 5 cycles.</p>
+<p>The immediate form takes 5 cycles, while the register form takes 4 cycles.</p>
 <h3 id="description">Description</h3>
 <p><kbd>AND</kbd> the source operand (<kbd>Am</kbd> or <kbd>imm8</kbd>) to the destination operand (<kbd>An</kbd>) and store the result in the destination location.</p>
 <h2 id="asr---arithmetic-shift-right">ASR - Arithmetic shift right</h2>
@@ -119,7 +119,7 @@ AND An, #imm8 - $Bn20 + imm8 (1 byte)</code></pre>
 <pre><code>ASR An, Am    - $An7m
 ASR An, #0..7 - $Bn7i</code></pre>
 <h3 id="timing">Timing</h3>
-<p>In both cases, the minimum cycle time is 5 cycles, and the maximum is 12 cycles. The cycles required can be determined with the formula <kbd>5+count</kbd> where count is the shift amount.</p>
+<p>In both cases, the minimum cycle time is 4 cycles, and the maximum is 11 cycles. The cycles required can be determined with the formula <kbd>4\+count</kbd> where count is the shift amount.</p>
 <h3 id="description">Description</h3>
 <p>Arithmetically shift the bits of the operand right. The shift count can be specified either as a literal from 0 to 7 (0 produces no shift), or in a register. If a register is used, the value is modulo 8. The bits in the operand are shifted into <kbd>C</kbd>.</p>
 <h2 id="beq---branch-if-equal">BEQ - Branch if equal</h2>
@@ -128,7 +128,7 @@ ASR An, #0..7 - $Bn7i</code></pre>
 <h3 id="syntax">Syntax</h3>
 <pre><code>BEQ &lt;label&gt; - $C0 + rel8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
-<p>If the branch is taken, the instruction takes 5 cycles. Otherwise, it takes only 4 cycles.</p>
+<p>If the branch is taken, the instruction takes 4 cycles. Otherwise, it takes only 3 cycles.</p>
 <h3 id="description">Description</h3>
 <p>If the <kbd>C</kbd> register is zero, program execution continues at location [PC] + displacement, d. The displacement is a two&#x27;s complement value. The value in the PC corresponds to the current location plus two. The range of the branch is -126 to +128 bytes.</p>
 <h2 id="bmi---branch-on-minus">BMI - Branch on minus</h2>
@@ -137,7 +137,7 @@ ASR An, #0..7 - $Bn7i</code></pre>
 <h3 id="syntax">Syntax</h3>
 <pre><code>BMI &lt;label&gt; - $C1 + rel8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
-<p>If the branch is taken, the instruction takes 5 cycles. Otherwise, it takes only 4 cycles.</p>
+<p>If the branch is taken, the instruction takes 4 cycles. Otherwise, it takes only 3 cycles.</p>
 <h3 id="description">Description</h3>
 <p>If bit 7 of <kbd>C</kbd> is set, program execution continues at location [PC] + displacement, d. The displacement is a two&#x27;s complement value. The value in the PC corresponds to the current location plus two. The range of the branch is -126 to +128 bytes.</p>
 <h2 id="bne---branch-if-not-equal">BNE - Branch if not equal</h2>
@@ -146,7 +146,7 @@ ASR An, #0..7 - $Bn7i</code></pre>
 <h3 id="syntax">Syntax</h3>
 <pre><code>BNE &lt;label&gt; - $C2 + rel8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
-<p>If the branch is taken, the instruction takes 5 cycles. Otherwise, it takes only 4 cycles.</p>
+<p>If the branch is taken, the instruction takes 4 cycles. Otherwise, it takes only 3 cycles.</p>
 <h3 id="description">Description</h3>
 <p>If the <kbd>C</kbd> register is not zero, program execution continues at location [PC] + displacement, d. The displacement is a two&#x27;s complement value. The value in the PC corresponds to the current location plus two. The range of the branch is -126 to +128 bytes.</p>
 <h2 id="dexdey---decrement-xy">DEX/DEY - Decrement X/Y</h2>
@@ -156,7 +156,7 @@ ASR An, #0..7 - $Bn7i</code></pre>
 <pre><code>DEX - $F7
 DEY - $F9</code></pre>
 <h3 id="timing">Timing</h3>
-<p>Both <kbd>DEX</kbd> and <kbd>DEY</kbd> take 3 cycles.</p>
+<p>Both <kbd>DEX</kbd> and <kbd>DEY</kbd> take 2 cycles.</p>
 <h3 id="description">Description</h3>
 <p>Decrement X or Y by 1. The <kbd>C</kbd> register will be set to 0 if X/Y becomes zero after the operation, otherwise it is set to 0xFF implicitly.</p>
 <h2 id="eor---exclusive-bitwise-or">EOR - Exclusive bitwise OR</h2>
@@ -166,7 +166,7 @@ DEY - $F9</code></pre>
 <pre><code>EOR An, Am    - $An4m
 EOR An, #imm8 - $Bn40 + imm8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
-<p>The immediate form takes 6 cycles, while the register form takes 5 cycles.</p>
+<p>The immediate form takes 5 cycles, while the register form takes 4 cycles.</p>
 <h3 id="description">Description</h3>
 <p><kbd>EOR</kbd> the source operand (<kbd>Am</kbd> or <kbd>imm8</kbd>) to the destination operand (<kbd>An</kbd>) and store the result in the destination location.</p>
 <h2 id="hlt---halt">HLT - Halt</h2>
@@ -175,7 +175,7 @@ EOR An, #imm8 - $Bn40 + imm8 (1 byte)</code></pre>
 <h3 id="syntax">Syntax</h3>
 <pre><code>HLT - $FF</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>HLT</kbd> takes 3 cycles.</p>
+<p><kbd>HLT</kbd> takes 2 cycles.</p>
 <h3 id="description">Description</h3>
 <p>Halt the CPU until an interrupt is received. During this time, no instructions will be processed.</p>
 <h2 id="ina---input-from-port">INA - Input from port</h2>
@@ -185,7 +185,7 @@ EOR An, #imm8 - $Bn40 + imm8 (1 byte)</code></pre>
 <pre><code>INA An, Am    - $An8m
 INA An, #imm8 - $Bn80 + imm8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
-<p>At minimum, <kbd>INA</kbd> will take 5 cycles to complete (6 cycles if using the immediate form). This number may be higher due to system design.</p>
+<p>At minimum, <kbd>INA</kbd> will take 4 cycles to complete (5 cycles if using the immediate form). This number may be higher due to system design.</p>
 <h3 id="description">Description</h3>
 <p>Read the value from the I/O port specified in the source operand (<kbd>Am</kbd> or <kbd>imm8</kbd>) into the destination operand (<kbd>An</kbd>)</p>
 <h2 id="inxiny---increment-xy">INX/INY - Increment X/Y</h2>
@@ -195,7 +195,7 @@ INA An, #imm8 - $Bn80 + imm8 (1 byte)</code></pre>
 <pre><code>INX - $F6
 INY - $F8</code></pre>
 <h3 id="timing">Timing</h3>
-<p>Both <kbd>INX</kbd> and <kbd>INY</kbd> take 3 cycles.</p>
+<p>Both <kbd>INX</kbd> and <kbd>INY</kbd> take 2 cycles.</p>
 <h3 id="description">Description</h3>
 <p>Increment X or Y by 1. The <kbd>C</kbd> register will be set to 0 if X/Y becomes zero after the operation, otherwise it is set to 0xFF implicitly.</p>
 <h2 id="jmp---jump">JMP - Jump</h2>
@@ -204,7 +204,7 @@ INY - $F8</code></pre>
 <h3 id="syntax">Syntax</h3>
 <pre><code>JMP &lt;label&gt; - $F3 + abs16 (2 bytes)</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>JMP</kbd> takes 5 cycles to complete.</p>
+<p><kbd>JMP</kbd> takes 4 cycles to complete.</p>
 <h3 id="description">Description</h3>
 <p>Program execution continues at the effective address specified by the instruction.</p>
 <h2 id="jsr---jump-to-subroutine">JSR - Jump to subroutine</h2>
@@ -214,7 +214,7 @@ INY - $F8</code></pre>
 <h3 id="syntax">Syntax</h3>
 <pre><code>JSR &lt;label&gt; - $F4 + abs16 (2 bytes)</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>JMP</kbd> takes 8 cycles to complete.</p>
+<p><kbd>JMP</kbd> takes 7 cycles to complete.</p>
 <h3 id="description">Description</h3>
 <p><kbd>JSR</kbd> pushes the 16-bit address of the instruction immediately following the JSR onto the system stack. Program execution then continues at the effective address specified in the instruction.</p>
 <h2 id="ldaldxldylds---load-immediate-into-destination">LDA/LDX/LDY/LDS - Load immediate into destination</h2>
@@ -226,7 +226,7 @@ LDX #imm16    - $F0 + imm16 (2 bytes)
 LDY #imm16    - $F1 + imm16 (2 bytes)
 LDS #imm16    - $F2 + imm16 (2 bytes)</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>LDA</kbd> takes 4 cycles to complete, while <kbd>LDX/LDY/LDS</kbd> take 5, due to the required additional fetch for the 16-bit literal.</p>
+<p><kbd>LDA</kbd> takes 3 cycles to complete, while <kbd>LDX/LDY/LDS</kbd> take 5, due to the required additional fetch for the 16-bit literal.</p>
 <h3 id="desciption">Desciption</h3>
 <p>Load the immediate literal specified into the destination. </p>
 <h2 id="ldm---load-from-memory">LDM - Load from memory</h2>
@@ -237,7 +237,7 @@ LDS #imm16    - $F2 + imm16 (2 bytes)</code></pre>
 LDM An, [Y] - $3n
 LDM An, [S] - $5n</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>LDM</kbd> takes 5 cycles to complete.</p>
+<p><kbd>LDM</kbd> takes 4 cycles to complete.</p>
 <h3 id="description">Description</h3>
 <p>Load the destination with the value at the memory address specified by the source.</p>
 <h2 id="lsllsr---logical-shift-leftright">LSL/LSR - Logical shift left/right</h2>
@@ -249,7 +249,7 @@ LSL An, Am    - $Bn5i
 LSR An, #0..7 - $An6m
 LSR An, Am    - $Bn6i</code></pre>
 <h3 id="timing">Timing</h3>
-<p>In both cases, the minimum cycle time is 5 cycles, and the maximum is 12 cycles. The cycles required can be determined with the formula <kbd>5+count</kbd> where count is the shift amount.</p>
+<p>In both cases, the minimum cycle time is 4 cycles, and the maximum is 11 cycles. The cycles required can be determined with the formula <kbd>4\+count</kbd> where count is the shift amount.</p>
 <h3 id="description">Description</h3>
 <p>Logically shift the bits of the operand in the specified direction. The shift count can be specified either as a literal from 0 to 7 (0 produces no shift), or in a register. If a register is used, the value is modulo 8. The bits in the operand are shifted into <kbd>C</kbd>.</p>
 <h2 id="mfr---move-from-register">MFr - Move from register</h2>
@@ -261,7 +261,7 @@ MFX An - $FA0n
 MFY An - $FA1n
 MFS An - $FA2n</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>MFC</kbd> takes 3 cycles to complete, while <kbd>MFX/MFY/MFS</kbd> takes 5 cycles.</p>
+<p><kbd>MFC</kbd> takes 2 cycles to complete, while <kbd>MFX/MFY/MFS</kbd> takes 4 cycles.</p>
 <h3 id="description">Description</h3>
 <p>Copy the value of the source register into the destination. <kbd>r</kbd> specifies the source register:</p>
 <table border="1"><thead>
@@ -282,7 +282,7 @@ MTX An - $FA3n
 MTY An - $FA4n
 MTS An - $FA5n</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>MTC</kbd> takes 3 cycles to complete, while <kbd>MTX/MTY/MTS</kbd> takes 5 cycles.</p>
+<p><kbd>MTC</kbd> takes 2 cycles to complete, while <kbd>MTX/MTY/MTS</kbd> takes 4 cycles.</p>
 <h3 id="description">Description</h3>
 <p>Write the value of the source register into the destination. <kbd>r</kbd> specifies the source register:</p>
 <table border="1"><thead>
@@ -301,7 +301,7 @@ MTS An - $FA5n</code></pre>
 <pre><code>MXY - $FA60
 MYX - $FA70</code></pre>
 <h3 id="timing">Timing</h3>
-<p>Both <kbd>MXY</kbd> and <kbd>MYX</kbd> take 5 cycles to complete.</p>
+<p>Both <kbd>MXY</kbd> and <kbd>MYX</kbd> take 4 cycles to complete.</p>
 <h3 id="description">Description</h3>
 <p>Copy the full contents of register X into Y (<kbd>MXY</kbd>), or register Y into X (<kbd>MYX</kbd>).</p>
 <h2 id="nop---no-operation">NOP - No operation</h2>
@@ -310,7 +310,7 @@ MYX - $FA70</code></pre>
 <h3 id="syntax">Syntax</h3>
 <pre><code>NOP</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>NOP</kbd> takes 3 cycles to complete.</p>
+<p><kbd>NOP</kbd> takes 2 cycles to complete.</p>
 <h3 id="description">Description</h3>
 <p><kbd>NOP</kbd> performs no operation. Execution continues with the instruction following the <kbd>NOP</kbd> instruction.</p>
 <h2 id="ora---bitwise-or">ORA - Bitwise OR</h2>
@@ -320,7 +320,7 @@ MYX - $FA70</code></pre>
 <pre><code>ORA An, Am    - $An3m
 ORA An, #imm8 - $Bn30 + imm8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
-<p>The immediate form takes 6 cycles, while the register form takes 5 cycles.</p>
+<p>The immediate form takes 5 cycles, while the register form takes 4 cycles.</p>
 <h3 id="description">Description</h3>
 <p><kbd>OR</kbd> the source operand (<kbd>Am</kbd> or <kbd>imm8</kbd>) to the destination operand (<kbd>An</kbd>) and store the result in the destination location.</p>
 <h2 id="out---output-to-port">OUT - Output to port</h2>
@@ -330,7 +330,7 @@ ORA An, #imm8 - $Bn30 + imm8 (1 byte)</code></pre>
 <pre><code>OUT Am, An    - $AnFm
 OUT #imm8, An - $BnF0 + imm8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
-<p>At minimum, <kbd>OUT</kbd> will take 5 cycles to complete (6 cycles if using the immediate form). This number may be higher due to system design.</p>
+<p>At minimum, <kbd>OUT</kbd> will take 4 cycles to complete (5 cycles if using the immediate form). This number may be higher due to system design.</p>
 <h3 id="description">Description</h3>
 <p>Write the value from the I/O port specified in the source operand (<kbd>Am</kbd> or <kbd>imm8</kbd>) into the destination operand (<kbd>An</kbd>)</p>
 <h2 id="phaphxphy---push-to-stack">PHA/PHX/PHY - Push to stack</h2>
@@ -342,7 +342,7 @@ OUT #imm8, An - $BnF0 + imm8 (1 byte)</code></pre>
 PHX    - $FAE0
 PHY    - $FAE1</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>PHA</kbd> takes 4 cycles to complete, while <kbd>PHX/PHY</kbd> takes 7 cycles.</p>
+<p><kbd>PHA</kbd> takes 3 cycles to complete, while <kbd>PHX/PHY</kbd> takes 6 cycles.</p>
 <h3 id="description">Description</h3>
 <p>Push the 8-bit register (<kbd>An</kbd>) or 16-bit register (<kbd>X</kbd>/<kbd>Y</kbd>) onto the stack.</p>
 <h2 id="plaplxply---pull-from-stack">PLA/PLX/PLY - Pull from stack</h2>
@@ -354,7 +354,7 @@ PHY    - $FAE1</code></pre>
 PLX    - $FAF0
 PLY    - $FAF1</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>PLA</kbd> takes 4 cycles to complete, while <kbd>PLX/PLY</kbd> takes 7 cycles.</p>
+<p><kbd>PLA</kbd> takes 3 cycles to complete, while <kbd>PLX/PLY</kbd> takes 6 cycles.</p>
 <h3 id="description">Description</h3>
 <p>Pull an 8-bit value from the stack into <kbd>An</kbd> or a 16-bit value into <kbd>X</kbd>/<kbd>Y</kbd>.</p>
 <h2 id="rolror---rotate-leftright">ROL/ROR - Rotate left/right</h2>
@@ -366,7 +366,7 @@ ROL An, Am    - $BnCi
 ROR An, #0..7 - $AnDm
 ROR An, Am    - $BnDi</code></pre>
 <h3 id="timing">Timing</h3>
-<p>In both cases, the minimum cycle time is 5 cycles, and the maximum is 12 cycles. The cycles required can be determined with the formula <kbd>5+count</kbd> where count is the shift amount.</p>
+<p>In both cases, the minimum cycle time is 4 cycles, and the maximum is 11 cycles. The cycles required can be determined with the formula <kbd>4\+count</kbd> where count is the shift amount.</p>
 <h3 id="description">Description</h3>
 <p>Rotate the bits of the operand in the specified direction. The rotate operation is circular in the sense that the bit shifted out at one end is shifted into the other end, that is, no bit is lost or destroyed by a rotate operation. The shift count can be specified either as a literal from 0 to 7 (0 produces no rotation), or in a register. If a register is used, the value is modulo 8. The bits in the operand are shifted into <kbd>C</kbd>.</p>
 <h2 id="rts---return-from-subroutine">RTS - Return from subroutine</h2>
@@ -375,7 +375,7 @@ ROR An, Am    - $BnDi</code></pre>
 <h3 id="syntax">Syntax</h3>
 <pre><code>RTS</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>RTS</kbd> takes 5 cycles to complete.</p>
+<p><kbd>RTS</kbd> takes 4 cycles to complete.</p>
 <h3 id="description">Description</h3>
 <p>The program counter is pulled from the stack and the previous value of the PC is lost. RTS is used to terminate a subroutine.</p>
 <h2 id="seq---set-if-equal">SEQ - Set if equal</h2>
@@ -385,7 +385,7 @@ ROR An, Am    - $BnDi</code></pre>
 <pre><code>SEQ An, Am    - $An9m
 SEQ An, #imm8 - $Bn90 + imm8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
-<p>The immediate form takes 6 cycles, while the register form takes 5 cycles.</p>
+<p>The immediate form takes 5 cycles, while the register form takes 4 cycles.</p>
 <h3 id="description">Description</h3>
 <p>If the source (<kbd>Am</kbd> or <kbd>imm8</kbd>) is equal to the destination (<kbd>An</kbd>), <kbd>C</kbd> will be set to 0, otherwise it is set to 0xFF.</p>
 <h2 id="slo---set-if-lower-than">SLO - Set if lower than</h2>
@@ -395,7 +395,7 @@ SEQ An, #imm8 - $Bn90 + imm8 (1 byte)</code></pre>
 <pre><code>SLO An, Am    - $AnBm
 SLO An, #imm8 - $BnB0 + imm8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
-<p>The immediate form takes 6 cycles, while the register form takes 5 cycles.</p>
+<p>The immediate form takes 5 cycles, while the register form takes 4 cycles.</p>
 <h3 id="description">Description</h3>
 <p>If the source (<kbd>Am</kbd> or <kbd>imm8</kbd>) is lower than the destination (<kbd>An</kbd>), <kbd>C</kbd> will be set to 0, otherwise it is set to 0xFF. Both operands are treated as unsigned operands.</p>
 <h2 id="slt---set-if-less-than">SLT - Set if less than</h2>
@@ -405,7 +405,7 @@ SLO An, #imm8 - $BnB0 + imm8 (1 byte)</code></pre>
 <pre><code>SLT An, Am    - $AnAm
 SLT An, #imm8 - $BnA0 + imm8 (1 byte)</code></pre>
 <h3 id="timing">Timing</h3>
-<p>The immediate form takes 6 cycles, while the register form takes 5 cycles.</p>
+<p>The immediate form takes 5 cycles, while the register form takes 4 cycles.</p>
 <h3 id="description">Description</h3>
 <p>If the source (<kbd>Am</kbd> or <kbd>imm8</kbd>) is less than the destination (<kbd>An</kbd>), <kbd>C</kbd> will be set to 0, otherwise it is set to 0xFF. Both operands are treated as signed operands.</p>
 <h2 id="stm---store-into-memory">STM - Store into memory</h2>
@@ -416,7 +416,7 @@ SLT An, #imm8 - $BnA0 + imm8 (1 byte)</code></pre>
 STM An, [Y] - $7n
 STM An, [S] - $6n</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>STM</kbd> takes 4 cycles to complete.</p>
+<p><kbd>STM</kbd> takes 3 cycles to complete.</p>
 <h3 id="description">Description</h3>
 <p>Store the value from the source into memory at the memory address specified by the source.</p>
 <h2 id="swp---swap-register-with-accumulator">SWP - Swap register with accumulator</h2>
@@ -427,7 +427,7 @@ STM An, [S] - $6n</code></pre>
 SWP An, Y - $FACn
 SWP An, S - $FADn</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>SWP</kbd> takes 5 cycles to complete.</p>
+<p><kbd>SWP</kbd> takes 4 cycles to complete.</p>
 <h3 id="description">Description</h3>
 <p>Swap the contents of X/Y/S with a 16-bit value specified with the low byte in <kbd>An</kbd> and the high byte in the register next to it <kbd>A(n+1)</kbd>. If <kbd>An</kbd> is <kbd>A15</kbd>, the high byte will be in <kbd>A0</kbd>.</p>
 <h2 id="sxysxssys---swap-register-with-register">SXY/SXS/SYS - Swap register with register</h2>
@@ -438,7 +438,7 @@ SWP An, S - $FADn</code></pre>
 SXS - $FA90
 SYS - $FAA0</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>SXY/SXS/SYS</kbd> takes 5 cycles to complete.</p>
+<p><kbd>SXY/SXS/SYS</kbd> takes 4 cycles to complete.</p>
 <h3 id="description">Description</h3>
 <p>Exchange the contents of the destination and source together.</p>
 <h2 id="tsr---transfer-register-to-register">TSR - Transfer register to register</h2>
@@ -447,7 +447,7 @@ SYS - $FAA0</code></pre>
 <h3 id="syntax">Syntax</h3>
 <pre><code>TSR An, Am - $AnEm</code></pre>
 <h3 id="timing">Timing</h3>
-<p><kbd>TSR</kbd> takes 5 cycles to complete.</p>
+<p><kbd>TSR</kbd> takes 4 cycles to complete.</p>
 <h3 id="description">Description</h3>
 <p>Copy the source (<kbd>Am</kbd>) into the destination (<kbd>An</kbd>).</p>
 </body>
